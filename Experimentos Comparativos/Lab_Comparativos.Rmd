@@ -1,0 +1,171 @@
+---
+title: "Laboratorio en R de Experimentos Comparativos"
+author: "Heriberto Felizzola Jimenez"
+subtitle: Diseño de Experimentos
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+---
+
+```{r}
+knitr::opts_chunk$set(message = F, warning = F, fig.align = "center")
+library(ggplot2)
+library(tidyr)
+```
+
+
+# Experimentos para muestras independientes 
+
+## Ejemplo 2.1.  Portland Cement Formulation Experiment
+
+Montgomery (2012): Un ingeniero está estudiando la formulación de un mortero de cemento Portland. En la nueva formulación agrega una emulsión de látex de polímero durante la mezcla para determinar si esto afecta el tiempo de curado y la resistencia a la tensión del mortero. 
+
+El experimentador toma 10 muestras para cada formulación. Nos referiremos a las dos formulaciones diferentes como dos tratamientos o como dos niveles de las formulaciones de factores.
+
+En un primer experimento se identificó un reducción significativa en el tiempo de curado, pero ahora quiere verificar qué tanto se afecta la resistencia.
+
+```{r}
+# Organizar los datos en vectores
+Modificado <- c(16.85,16.40,17.21,16.35,16.52,17.04,16.96,17.15,16.59,16.57)
+No_Modificado <- c(16.62,16.75,17.37,17.12,16.98,16.87,17.34,17.02,17.08,17.27)
+# Ahora se crea un data.frame
+df <- data.frame(Modificado,No_Modificado)
+df <- gather(data = df, key = "Tratamiento", value = "Resistencia", 
+             Modificado, No_Modificado)
+```
+
+## Análisis gráfico
+
+A continuación se presenta un gráfico de valores individuales para analizar que la variabilidad y localización de las muestras para cada tratamiento.
+
+```{r}
+p1 <- ggplot(df, aes(x = Tratamiento, y = Resistencia))  #
+p1 + geom_point() + ggtitle("Gráfica de valores individuales para la resistencia") 
+```
+
+Adicionalmente, se puede utilizar un gráfico de cajas para comparar medidas de posición como Q1(25%), Q2(50%) o mediana y Q3(75%).
+
+```{r}
+p1 + geom_boxplot() + ggtitle("Gráfica de caja para la resistencia")
+```
+
+## Resumen estadístico
+
+A continuación se presenta un resumen estadístico para cada uno de los tratamientos
+
+```{r}
+summary(Modificado)
+```
+
+```{r}
+summary(No_Modificado)
+```
+
+Ademas se pueden calcular desviación y varianza, para el mortero modificado y no modificado respectivamente:
+
+```{r}
+sd(Modificado) # Desviación estandar
+var(Modificado) # Varianza
+```
+
+```{r}
+sd(No_Modificado) # Desviación estandar
+var(No_Modificado) # Varianza
+```
+
+## Prueba t para varianzas iguales
+
+A continuación se presenta la función utilizada para realizar la prueba t. 
+
+```{r}
+t.test(x = Modificado, # Muestra 1
+       y = No_Modificado, # Muestra 2
+       mu = 0, # Delta para la diferencia de medias
+       alternative = "two.sided", # Hipótesis alterna
+       var.equal = TRUE, # ¿Se asume varianzas iguales?
+       conf.level = 0.95) # Nivel de confianza
+```
+
+## Prueba F para varianzas
+
+A continuación se presenta la función y los resultados de una prueba F
+
+```{r}
+var.test(x = Modificado, # Muestra 1
+         y = No_Modificado, # Muestra 2
+         ratio = 1, # Relación entre varianzas
+         alternative = "two.sided", # Hipòtesis alterna
+         conf.level = 0.95) # Nivel de confianza
+```
+
+## Verificación de normalidad
+
+A continuación se presentan las gráficas de normalidad para las dos muestras:
+
+```{r}
+p <- ggplot(df, aes(sample = Resistencia, color = Tratamiento))
+p + stat_qq() + stat_qq_line() + ggtitle("Gráfica de probabilidad para la muestra 1 y 2")
+```
+
+# Experimentos para muestras pareadas
+
+## Ejemplo 2.2 Tratamiento para reducción de peso
+
+Diez personas adultas entre las edades de 35 y 50 participaron en un estudio para evaluar el efecto de la dieta y el ejercicio sobre el peso en Kg. El peso se midió en cada individuo inicialmente, y después de 4 meses de participar en un programa de ejercicio aeróbico y dieta baja en grasa, 
+En la siguiente tabla se presentan los datos de las mediciones:
+
+```{r}
+# Organizar los datos en vectores
+Antes <- c(95.0,84.1,90.1,85.6,88.0,87.7,95.8,83.9,83.0,94.6)
+Despues <- c(90.4,80.3,84.1,75.5,86.6,75.0,89.9,86.2,84.0,82.6)
+# Luego un data.frame
+df2 <- data.frame(Antes,Despues)
+df2 <- gather(data = df2, key = "Tratamiento", value = "Peso", Antes, Despues)
+df2$Individuo <- rep(c(1:10), each = 1, times = 2)
+```
+
+## Análisis gráfico de las diferencias los pesos por individuo
+
+A continuación se presenta un gráfico que compara las diferencias de peso antes y despues del tratamiento.
+
+```{r}
+ggplot2::ggplot(df2, aes(x = Individuo, y = Peso, color = Tratamiento)) + 
+  geom_line() + geom_point() + scale_x_continuous(breaks = c(1:10)) + 
+        ggtitle("Gráfica para las diferencias")
+```
+
+
+## Estadísticos para las diferencias
+
+Se calculan las diferencias y se hace una estimaciónde la media, la varianza y la desviación estandar:
+
+```{r}
+mean(Antes-Despues)
+var(Antes-Despues)
+sd(Antes-Despues)
+```
+
+## Prueba t pareada
+
+A continuación se presenta la prueba t pareada en R.
+
+```{r}
+t.test(x = Antes, 
+       y = Despues, 
+       alternative = "two.sided", 
+       paired = T, 
+       conf.level = 0.95)
+```
+
+## Análisis de normalidad para las diferencias
+
+Un análisis de la normalidad para las diferencias se presenta a continuación:
+
+```{r}
+ggplot2::ggplot(data.frame(Diferencia = Antes-Despues), aes(sample = Diferencia))+ 
+  stat_qq() + 
+  stat_qq_line() +
+  ggtitle("Gráfica de probabilidad normal para las diferencias")
+```
+
